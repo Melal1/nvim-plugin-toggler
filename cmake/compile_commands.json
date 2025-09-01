@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/melal/Documents/dev/projects/simple/cpp/nvimPluginsToggler/cmake",
+  "command": "/run/current-system/sw/bin/c++  -I/home/melal/Documents/dev/projects/simple/cpp/nvimPluginsToggler/include -std=gnu++17 -o CMakeFiles/my_app.dir/src/nvimPlugins.cpp.o -c /home/melal/Documents/dev/projects/simple/cpp/nvimPluginsToggler/src/nvimPlugins.cpp",
+  "file": "/home/melal/Documents/dev/projects/simple/cpp/nvimPluginsToggler/src/nvimPlugins.cpp",
+  "output": "CMakeFiles/my_app.dir/src/nvimPlugins.cpp.o"
+}
+]
