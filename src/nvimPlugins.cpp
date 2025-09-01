@@ -15,7 +15,7 @@ enum keys
   DOWN = 'j',
   QUIT = 'q',
   ENTER = '\n',
-  DELETE = 8,
+  DELETE = 127,
   SEARCH = '/',
   ESC = '\033'
 };
@@ -62,59 +62,110 @@ void printMenu(const std::vector<std::string> &entries, const unsigned int highl
   }
 }
 
-void searchMode(const std::vector<std::string> &entries, WINDOW *win, unsigned int yMax)
+char picker(WINDOW *win, const std::vector<std::string> &entries, const int &yMax, unsigned int &highlighter)
+{
+  printMenu(entries, highlighter, win, yMax);
+  while (1)
+  {
+    char key = wgetch(win);
+    switch (key)
+    {
+    case UP:
+      if (highlighter <= 0)
+      {
+        highlighter = entries.size() - 1;
+        printMenu(entries, highlighter, win, yMax);
+      }
+      else
+      {
+        printMenu(entries, --highlighter, win, yMax);
+      }
+      break;
+    case DOWN:
+      if (highlighter >= entries.size() - 1)
+      {
+        highlighter = 0;
+        printMenu(entries, highlighter, win, yMax);
+      }
+      else
+      {
+        printMenu(entries, ++highlighter, win, yMax);
+      }
+      break;
+    default:
+      return key;
+      break;
+    }
+  }
+}
+
+char searchMode(const std::vector<std::string> &entries, WINDOW *win, const unsigned int &yMax, std::string &option)
 {
   wclear(win);
   std::vector<std::string> filterd = entries;
   std::string searchInput;
   bool end = 0;
-  while (!end)
+  bool picking = 0;
+  while (true)
   {
+    if (picking)
+    {
+      unsigned int highlighter = 0;
+      while (picking)
+      {
+        switch (picker(win, filterd, yMax, highlighter))
+        {
+        case ESC:
+          return 'e';
+        case ENTER:
+          option = filterd[highlighter];
+          return 's';
+        case SEARCH:
+          picking = 0;
+          searchInput.clear();
+          break;
+        case QUIT:
+          return 'q';
+        default:
+          break;
+        }
+      }
+      continue;
+    }
     wclear(win);
     printMenu(filterd, 0, win, yMax - 3);
     mvwprintw(win, yMax - 1, 0, "/%s", searchInput.c_str());
-    char key = wgetch(win);
-    switch (key)
+    while (!picking) // opt
     {
-    case ENTER:
-      break;
-    case DELETE:
-      searchInput.pop_back();
-      filterd = filterEnt(entries, searchInput);
-      break;
-    case ESC:
-      end = 1;
-      break;
-    default:
-      searchInput.push_back(key);
-      filterd = filterEnt(entries, searchInput);
-    }
-  }
-}
-
-keys getAllowedKey(WINDOW *win)
-{
-  while (true)
-
-  {
-
-    switch (wgetch(win))
-    {
-    case UP:
-      return UP;
-
-    case DOWN:
-      return DOWN;
-
-    case QUIT:
-      return QUIT;
-
-    case ENTER:
-      return ENTER;
-    case SEARCH:
-      return SEARCH;
-    default:
-      break;
+      char key = wgetch(win);
+      switch (key)
+      {
+      case ENTER:
+        picking = 1;
+        break;
+      case DELETE:
+        if (!searchInput.empty())
+        {
+          searchInput.pop_back();
+          filterd = filterEnt(entries, searchInput);
+          wclear(win);
+          printMenu(filterd, 0, win, yMax - 3);
+          mvwprintw(win, yMax - 1, 0, "/%s", searchInput.c_str());
+        }
+        break;
+      case ESC:
+        return 'e';
+        break;
+      default:
+        if (key != ' ')
+        {
+          searchInput.push_back(key);
+          filterd = filterEnt(entries, searchInput);
+          wclear(win);
+          printMenu(filterd, 0, win, yMax - 3);
+          mvwprintw(win, yMax - 1, 0, "/%s", searchInput.c_str());
+        }
+      }
     }
   }
 }
@@ -125,32 +176,32 @@ std::string Menu(const std::vector<std::string> &entries, WINDOW *win)
   unsigned int highlighter = 0;
   unsigned int lastEnt = entries.size() - 1;
   unsigned int yMax = getmaxy(win);
-
+  char key;
   while (1)
   {
-    printMenu(entries, highlighter, win, yMax);
-    switch (getAllowedKey(win))
+    switch (picker(win, entries, yMax, highlighter))
     {
-    case UP:
-      if (highlighter > 0)
-        highlighter--;
-      break;
-    case DOWN:
-      if (highlighter < lastEnt)
-        highlighter++;
-      break;
     case QUIT:
       return "q";
-      break;
     case ENTER:
       return entries[highlighter];
-      break;
     case SEARCH:
-      searchMode(entries, win, yMax);
-      break;
+    {
+      std::string option;
+      switch (searchMode(entries, win, yMax, option))
+      {
+      case 'e':
+        wclear(win);
+        break;
+      case 'q':
+        return "q";
+      case 's':
+        return option;
+        ;
+      }
+    }
     default:
       break;
-      // I made getAllowedKey fun to prevent printMenu when invalid key is enterd
     }
   }
 }
@@ -175,12 +226,15 @@ int main()
 
   // Starting ncurses
   initscr();
+  cbreak();
   noecho();
   curs_set(0);
   std::string choice = Menu(entries, stdscr);
-  // searchMode(entries, stdscr, getmaxy(stdscr));
-
   endwin();
 
-  // std::cout << choice;
+  if (choice.c_str()[0] == 'q')
+  {
+    return 0;
+  }
+  std::cout << choice;
 }
