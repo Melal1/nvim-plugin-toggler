@@ -110,6 +110,11 @@ char searchMode(const std::vector<std::string> &entries, WINDOW *win, const unsi
   {
     if (picking)
     {
+      if (filterd.size() == 1)
+      {
+        option = filterd[0];
+        return 's';
+      }
       unsigned int highlighter = 0;
       while (picking)
       {
